@@ -218,5 +218,5 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 https://github.com/user-attachments/assets/94151eec-750c-49a2-a5e4-554665e860b6
 | Video | What it shows |
 |---|---|
-| [Simulation run](NEW-LINK) | Isaac Sim: typed task → VLM engine → path planning + safety checks → pick, carry, place |
+|[ [Simulation run](NEW-LINK)](https://github.com/user-attachments/assets/94151eec-750c-49a2-a5e4-554665e860b6) | Isaac Sim: typed task → VLM engine → path planning + safety checks → pick, carry, place |
 <!-- | [Real robot](PASTE-LINK) | Phone-camera scan → simulated check → real Dobot replay | -->
