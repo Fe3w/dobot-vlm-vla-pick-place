@@ -52,7 +52,7 @@ sequenceDiagram
     V-->>W: Pick tag 2, place beside tag 1, avoid tag 3
     Note over W: Cross-check the answer<br/>against the task wording
     W->>P: Pixel keypoints for this capture
-    Note over P: Depth rays to 3D points<br/>IK + collision-free route
+    Note over P: Depth rays to 3D points<br/>IK + collision-free routeaaaaaaaaaaa
     P->>D: Checked path, run in simulation
     D-->>U: Picked, carried, placed + result check
     opt Real robot (optional)
