@@ -1,3 +1,7 @@
+
+
+
+
 <div align="center">
 
 # Dobot Magician VLM pick-and-place
@@ -13,7 +17,7 @@ and checks the motion, and a Dobot Magician carries it out, first in simulation,
 
 </div>
 
-NEW-LINK
+https://github.com/user-attachments/assets/3d14c2cb-25bf-4d8f-99ec-96a852c00af8
 
 <p align="center"><em>Simulation. Task: "pick up the green cube and place it next to the cylinder".
 The waiting (scene capture, VLM engine, path planning and safety checks) is fast-forwarded; the robot's motion
@@ -216,5 +220,5 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 | Video | What it shows |
 |---|---|
-| [Simulation run](NEW-LINK) | Isaac Sim: typed task → VLM engine → path planning + safety checks → pick, carry, place |
+| Uploading VLM_VLA_with_Isaac_Sim.mp4…| Isaac Sim: typed task → VLM engine → path planning + safety checks → pick, carry, place |
 <!-- | [Real robot](PASTE-LINK) | Phone-camera scan → simulated check → real Dobot replay | -->
