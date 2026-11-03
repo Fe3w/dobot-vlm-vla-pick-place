@@ -13,11 +13,11 @@ and checks the motion, and a Dobot Magician carries it out, first in simulation,
 
 </div>
 
-https://github.com/user-attachments/assets/5669e491-4c8e-4ee0-93f9-92e04d259d37
+NEW-LINK
 
-<p align="center"><em>Simulation, 4× speed. Task: "pick up the green cube and place it next to the cylinder".
-The task window takes the typed task, the VLM picks the objects, the depth view shows what the planner sees, and the
-arm picks, carries and places while avoiding the other objects.</em></p>
+<p align="center"><em>Simulation. Task: "pick up the green cube and place it next to the cylinder".
+The waiting (scene capture, VLM engine, path planning and safety checks) is fast-forwarded; the robot's motion
+is real time. No training data and no hand-taught paths.</em></p>
 
 ## What it does
 
@@ -37,37 +37,29 @@ arm picks, carries and places while avoiding the other objects.</em></p>
 ## Architecture
 
 ```mermaid
-flowchart LR
-    subgraph IN["Input"]
-        T["Typed task"]
-        PH["Phone camera<br/>(real scene)"]
-    end
+sequenceDiagram
+    actor U as You
+    participant W as Task window (Isaac Sim)
+    participant V as VLM engine
+    participant P as Planner + safety checks
+    participant S as Simulated Dobot
+    participant R as Real Dobot (optional)
 
-    subgraph SIM["NVIDIA Isaac Sim 6.0"]
-        W["Task window<br/>dobot_run_task.py"]
-        C["Overhead capture<br/>image + object list"]
-        K["Keypoints<br/>bound to the capture"]
-        G["Depth rays<br/>3D points, heights, obstacles"]
-        P["IK + polar-grid<br/>route planner"]
-        X["Simulated pick and place<br/>kinematic suction latch"]
-        R{"Result<br/>check"}
+    U->>W: typed task
+    opt Use real scene
+        R-->>W: phone scan: real objects in robot mm
     end
-
-    subgraph VLM["VLM engine"]
-        M["Set-of-marks prompt<br/>numbered object tags"]
-        API["OpenAI-compatible API<br/>Claude API / Claude Code<br/>local model (Ollama)"]
-        WP["Wording parser<br/>cross-check"]
+    W->>W: reset scene, capture overhead camera
+    W->>V: tagged image + task
+    V-->>W: target, reference, side, what to avoid
+    W->>W: cross-check with the task wording
+    W->>P: keypoints bound to the capture
+    P->>P: depth rays to 3D points, IK, collision-free route
+    P->>S: checked path
+    S-->>W: pick, carry, place, result check
+    opt Use real scene
+        W->>R: re-scan, then replay the checked path
     end
-
-    subgraph REAL["Real world"]
-        S["dobot_real.py<br/>scan + calibration"]
-        B["dobot_link.py bridge<br/>USB serial"]
-        D["Dobot Magician"]
-    end
-
-    T --> W --> C --> M --> API --> WP --> K --> G --> P --> X --> R
-    PH --> S -->|"objects in robot mm"| W
-    R -->|"passed: re-scan, then replay"| B --> D
 ```
 
 Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -221,5 +213,5 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 | Video | What it shows |
 |---|---|
-| [Simulation run](https://github.com/user-attachments/assets/5669e491-4c8e-4ee0-93f9-92e04d259d37) | Isaac Sim: typed task → VLM → depth view → pick, carry, place (4×) |
+| [Simulation run](NEW-LINK) | Isaac Sim: typed task → VLM engine → path planning + safety checks → pick, carry, place |
 <!-- | [Real robot](PASTE-LINK) | Phone-camera scan → simulated check → real Dobot replay | -->
