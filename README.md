@@ -17,7 +17,10 @@ and checks the motion, and a Dobot Magician carries it out, first in simulation,
 </div>
 
 
-https://github.com/user-attachments/assets/94151eec-750c-49a2-a5e4-554665e860b6
+
+https://github.com/user-attachments/assets/50da6a2c-5191-49c3-a10d-c303a0387f9a
+
+
 
 <p align="center"><em>Simulation. Task: "pick up the green cube and place it next to the cylinder".
 The waiting (scene capture, VLM engine, path planning and safety checks) is fast-forwarded; the robot's motion
@@ -218,5 +221,6 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 https://github.com/user-attachments/assets/94151eec-750c-49a2-a5e4-554665e860b6
 | Video | What it shows |
 |---|---|
-|[ [Simulation run](NEW-LINK)](https://github.com/user-attachments/assets/94151eec-750c-49a2-a5e4-554665e860b6) | Isaac Sim: typed task → VLM engine → path planning + safety checks → pick, carry, place |
+|[ [Simulation run](NEW-LINK)](
+https://github.com/user-attachments/assets/50da6a2c-5191-49c3-a10d-c303a0387f9a) | Isaac Sim: typed task → VLM engine → path planning + safety checks → pick, carry, place |
 <!-- | [Real robot](PASTE-LINK) | Phone-camera scan → simulated check → real Dobot replay | -->
