@@ -1,56 +1,119 @@
+<div align="center">
+
 # Dobot Magician VLM pick-and-place
 
-Type a task such as *"pick the red cylinder, place it beside the purple cone and avoid the green sphere"*. A
-vision-language model reads it against an overhead camera image, and the Dobot Magician carries it out. The task
-runs first in NVIDIA Isaac Sim, then optionally on the real arm, with an ordinary phone as the camera.
+**Type a task in plain English. A vision-language model reads it against the camera image, NVIDIA Isaac Sim plans
+and checks the motion, and a Dobot Magician carries it out, first in simulation, then on the real arm.**
 
-![Phone-camera view: detected objects, estimated height map and the planned path](docs/images/rgb_view_example.png)
+![Isaac Sim](https://img.shields.io/badge/NVIDIA%20Isaac%20Sim-6.0.1-76B900?logo=nvidia&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-24.04-E95420?logo=ubuntu&logoColor=white)
+![Robot](https://img.shields.io/badge/Robot-Dobot%20Magician-2B2B2B)
+![VLM](https://img.shields.io/badge/VLM-OpenAI--compatible%20%7C%20Claude%20%7C%20local-6E56CF)
 
-## How it works
+</div>
+
+https://github.com/user-attachments/assets/5669e491-4c8e-4ee0-93f9-92e04d259d37
+
+<p align="center"><em>Simulation, 4× speed. Task: "pick up the green cube and place it next to the cylinder".
+The task window takes the typed task, the VLM picks the objects, the depth view shows what the planner sees, and the
+arm picks, carries and places while avoiding the other objects.</em></p>
+
+## What it does
+
+```text
+"pick the red cylinder, place it beside the purple cone and avoid the green sphere"
+```
+
+1. The overhead camera image is captured and every object in it is found.
+2. A **vision-language model** sees the image with a numbered tag on each object. It answers only *which tag to
+   pick, which tag is the reference, which side, and what to avoid*. It never guesses coordinates.
+3. The chosen pixels become real 3D points through **depth rays** into the scene. **Inverse kinematics** and an
+   **obstacle-aware route planner** work out a safe path for the held object.
+4. The simulated Dobot picks, carries, places and returns home. A **result check** confirms the task was done.
+5. **Real robot (optional):** an ordinary **phone camera** finds the real objects. They are mirrored into the
+   simulation and the task is planned and checked there. Only a checked path is replayed on the real Dobot.
+
+## Architecture
 
 ```mermaid
 flowchart LR
-    T[Typed task] --> W[Task window<br/>in Isaac Sim]
-    W --> C[Capture<br/>overhead camera]
-    C --> V[VLM grounding<br/>numbered tags]
-    V --> K[Keypoints bound<br/>to the capture]
-    K --> P[Depth rays + IK +<br/>obstacle-aware route]
-    P --> S[Simulated<br/>pick and place]
-    S --> R{Result check}
-    R -->|passed| X[Real Dobot<br/>replay over USB]
-    Ph[Phone camera<br/>scan] -.real scene.-> W
+    subgraph IN["Input"]
+        T["Typed task"]
+        PH["Phone camera<br/>(real scene)"]
+    end
+
+    subgraph SIM["NVIDIA Isaac Sim 6.0"]
+        W["Task window<br/>dobot_run_task.py"]
+        C["Overhead capture<br/>image + object list"]
+        K["Keypoints<br/>bound to the capture"]
+        G["Depth rays<br/>3D points, heights, obstacles"]
+        P["IK + polar-grid<br/>route planner"]
+        X["Simulated pick and place<br/>kinematic suction latch"]
+        R{"Result<br/>check"}
+    end
+
+    subgraph VLM["VLM engine"]
+        M["Set-of-marks prompt<br/>numbered object tags"]
+        API["OpenAI-compatible API<br/>Claude API / Claude Code<br/>local model (Ollama)"]
+        WP["Wording parser<br/>cross-check"]
+    end
+
+    subgraph REAL["Real world"]
+        S["dobot_real.py<br/>scan + calibration"]
+        B["dobot_link.py bridge<br/>USB serial"]
+        D["Dobot Magician"]
+    end
+
+    T --> W --> C --> M --> API --> WP --> K --> G --> P --> X --> R
+    PH --> S -->|"objects in robot mm"| W
+    R -->|"passed: re-scan, then replay"| B --> D
 ```
 
-1. **Capture**: the overhead camera image is rendered and every object in it is found from the scene.
-2. **VLM grounding (set-of-marks)**: each candidate object gets a numbered tag. The model only answers which tag
-   to pick, which tag is the reference, the relation ("beside", "left of", "behind", ...) and which tags to
-   avoid. It never estimates coordinates. A wording parser checks the answer against the typed task.
-3. **Geometry**: the chosen pixels are cast as rays into the scene to get real 3D points, the support surface
-   and the object heights. A planner searches a collision-free route for the held object.
-4. **Execution**: the simulated arm approaches, touches down, latches, lifts, carries, places, releases and
-   returns home. The scene is then reset.
-5. **Real robot (optional)**: the phone photo is compared with an empty-table photo to find the real objects
-   and their positions in robot millimetres. Matching stand-ins are placed in the simulation, the task is planned
-   and checked there, and only a checked path is sent to the Dobot.
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## Real-world setup
+
+The real arm uses a phone as its only camera (no depth camera). The phone is calibrated against the arm by touching
+printed ArUco markers, on the table and on top of boxes, with the suction tip. Objects are then found by comparing
+each photo with a photo of the empty table.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/lab_setup.jpg" alt="Dobot Magician with ArUco markers and test objects on the lab table"></td>
+<td width="50%"><img src="docs/images/calibration_markers.jpg" alt="All calibration markers detected and numbered in one phone photo"></td>
+</tr>
+<tr>
+<td align="center"><em>Lab setup: Dobot Magician, calibration markers, test objects</em></td>
+<td align="center"><em><code>calibrate-all</code>: every marker found and numbered from one photo</em></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/images/phone_detection.jpg" alt="Estimated height map and phone photo with detected objects and their robot coordinates"></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><em>Phone camera view: estimated height map (left) and detected objects with their
+position in robot millimetres (right). This view replaces the depth camera.</em></td>
+</tr>
+</table>
+
+<!-- Real-robot video: drag the video file into the README editor on GitHub, then put the link it creates on its own line here. -->
 
 ## Status
 
 | Part | State |
 |---|---|
-| Simulation pipeline (capture → VLM → plan → pick and place → result check → reset) | Works in Isaac Sim 6.0.1 |
-| VLM providers: OpenAI-compatible APIs, Claude API, Claude Code CLI, no-model fallback | Implemented |
-| Phone-camera calibration, object detection, RGB "height map" view | Works with an Android phone (IP Webcam) |
-| Real Dobot driver, bridge, teleop, auto-park | Teleop and homing tested on the arm |
-| Real-robot replay of a simulated plan | In testing; first runs slow, with a hand on the power switch |
+| Simulation pipeline (capture → VLM → plan → pick and place → result check → reset) | ✅ Works in Isaac Sim 6.0.1 |
+| VLM providers: OpenAI-compatible APIs, Claude API, Claude Code CLI, local models, no-model fallback | ✅ Implemented |
+| Phone-camera calibration, object detection, RGB "height map" view | ✅ Works with an Android phone (IP Webcam) |
+| Real Dobot driver, bridge, teleop, auto-park | ✅ Teleop and homing tested on the arm |
+| Real-robot replay of a simulated plan | 🧪 In testing |
 
 ## Requirements
 
 - Ubuntu 22.04 or 24.04 with an NVIDIA RTX GPU (8 GB VRAM is enough), NVIDIA Isaac Sim 6.0.x
 - The scene assets (USD stage, URDF, Lula YAML). See [assets/README.md](assets/README.md).
-- A vision-language model: any OpenAI-compatible API with image input, the Claude API, or a signed-in
-  Claude Code CLI
+- A vision-language model: any OpenAI-compatible API with image input, a local model, the Claude API, or a
+  signed-in Claude Code CLI
 - Real robot only: Dobot Magician with suction cup, USB cable, and an Android phone with the IP Webcam app
 
 ## Quick start (simulation)
@@ -66,7 +129,7 @@ bash scripts/start_dobot.sh           # opens Isaac Sim with the "Dobot pick-and
 
 Type a task in the window and press **Run task**. Full setup: [docs/SETUP.md](docs/SETUP.md).
 
-### Choosing the VLM
+## Choosing the VLM
 
 Set `VLM_PROVIDER` in `.env`:
 
@@ -77,7 +140,34 @@ Set `VLM_PROVIDER` in `.env`:
 | `claude_code` | `VLM_CLAUDE_CODE_MODEL` | Claude Code CLI on a Claude subscription; API keys in the environment are removed for the call |
 | `none` | | No model: unambiguous tasks are decided from their wording |
 
-Test the connection: `python3 src/dobot_vlm_keypoints.py --check`. Details: [docs/VLM.md](docs/VLM.md).
+Several providers at once (`VLM_PROVIDER=openai,claude_code`) are asked in parallel, and their answers must agree.
+Test the connection with `python3 src/dobot_vlm_keypoints.py --check`. Details: [docs/VLM.md](docs/VLM.md).
+
+### Running with a local model (no API key, no internet)
+
+The model only has to say which numbered tag is which. It never estimates coordinates, so a small local vision
+model on the same laptop is enough. With [Ollama](https://ollama.com):
+
+```bash
+ollama pull qwen2.5vl:7b          # any vision model; smaller ones answer faster
+```
+
+```ini
+# .env
+VLM_PROVIDER=openai
+VLM_API_BASE=http://127.0.0.1:11434/v1
+VLM_MODEL=qwen2.5vl:7b
+VLM_API_KEY=
+```
+
+Then run `python3 src/dobot_vlm_keypoints.py --check`. It should print `route openai up ok (model offered)`.
+
+- A 7B vision model in 4-bit needs about 6 GB of GPU memory. Isaac Sim needs most of an 8 GB card, so on a laptop
+  you may have to run the model on the CPU (slower), or use a smaller model.
+- Raise `VLM_DEADLINE_S` (default 40 s) if the first answer is slow while the model loads.
+- The answer is still cross-checked against the task wording, and every pixel is verified with depth rays before
+  the arm moves. With a weaker model, name objects clearly in the task ("the red cylinder"): the wording check
+  can then catch a wrong answer.
 
 ## Real robot
 
@@ -92,17 +182,15 @@ Tick **Use real scene**, press **Run task**, check the plan in the Phone camera 
 
 ## Repository layout
 
-```
+```text
 src/            runtime scripts (Isaac Sim side and real-robot side), all in one folder because they load each other
 scripts/        start_dobot.sh, start_real.sh, setup_real.sh (+ _env.sh, shared settings loader)
 diagnostics/    read-only Isaac Sim scene and gripper audits
-tools/          git hooks (no secrets or assistant files in commits), Windows replay of a plan
+tools/          git hooks, Windows replay of a plan
 docs/           setup, VLM, real robot, architecture, troubleshooting
 assets/         scene assets (not in git)
 output/         run data: captures, VLM decisions, calibration, run log (created at run time, not in git)
 ```
-
-Main entry points:
 
 | File | Role |
 |---|---|
@@ -128,3 +216,10 @@ Main entry points:
 ## Troubleshooting
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+## Videos
+
+| Video | What it shows |
+|---|---|
+| [Simulation run](https://github.com/user-attachments/assets/5669e491-4c8e-4ee0-93f9-92e04d259d37) | Isaac Sim: typed task → VLM → depth view → pick, carry, place (4×) |
+<!-- | [Real robot](PASTE-LINK) | Phone-camera scan → simulated check → real Dobot replay | -->
