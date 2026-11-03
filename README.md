@@ -1,3 +1,11 @@
+
+
+
+https://github.com/user-attachments/assets/5669e491-4c8e-4ee0-93f9-92e04d259d37
+
+
+
+
 # Dobot Magician VLM pick-and-place
 
 Type a task such as *"pick the red cylinder, place it beside the purple cone and avoid the green sphere"*. A
