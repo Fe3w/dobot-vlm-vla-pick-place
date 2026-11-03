@@ -36,20 +36,24 @@
 ## Real-scene flow
 
 ```mermaid
+%%{init: {"sequence": {"mirrorActors": false, "messageMargin": 40, "noteMargin": 12}}}%%
 sequenceDiagram
+    autonumber
     participant W as Task window
-    participant R as dobot_real.py
-    participant B as Bridge (dobot_link serve)
+    participant R as dobot_real.py<br/>phone camera
+    participant B as Bridge<br/>dobot_link serve
     participant D as Dobot
-    W->>R: scan (arm parked first)
-    R->>B: pose / park
-    B->>D: serial PTP
-    R-->>W: real_scene.json (objects in robot mm)
-    W->>W: stand-ins in simulation, VLM, plan, simulated run, result check
-    W->>R: execute --yes (Send to real Dobot)
-    R->>R: re-scan, compare with the planned scene
-    R->>B: checked moves + suction
-    B->>D: queued PTP commands
+
+    W->>R: Scan the table
+    R->>B: Park the arm out of view
+    B->>D: Serial move to the park pose
+    Note over R: Phone photo vs. empty-table photo<br/>objects in robot millimetres
+    R-->>W: real_scene.json
+    Note over W: Stand-ins in simulation, VLM,<br/>plan, simulated run, result check
+    W->>R: Send to real Dobot (execute)
+    Note over R: Re-scan, refuse if anything moved
+    R->>B: Checked moves + suction
+    B->>D: Queued serial moves
 ```
 
 Frames: the camera is calibrated to the Dobot's own Cartesian frame (mm). The simulation's base frame matches it

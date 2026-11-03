@@ -37,28 +37,26 @@ is real time. No training data and no hand-taught paths.</em></p>
 ## Architecture
 
 ```mermaid
+%%{init: {"sequence": {"mirrorActors": false, "messageMargin": 40, "noteMargin": 12}}}%%
 sequenceDiagram
+    autonumber
     actor U as You
-    participant W as Task window (Isaac Sim)
+    participant W as Isaac Sim<br/>task window
     participant V as VLM engine
-    participant P as Planner + safety checks
-    participant S as Simulated Dobot
-    participant R as Real Dobot (optional)
+    participant P as Planner +<br/>safety checks
+    participant D as Dobot<br/>sim, then real
 
-    U->>W: typed task
-    opt Use real scene
-        R-->>W: phone scan: real objects in robot mm
-    end
-    W->>W: reset scene, capture overhead camera
-    W->>V: tagged image + task
-    V-->>W: target, reference, side, what to avoid
-    W->>W: cross-check with the task wording
-    W->>P: keypoints bound to the capture
-    P->>P: depth rays to 3D points, IK, collision-free route
-    P->>S: checked path
-    S-->>W: pick, carry, place, result check
-    opt Use real scene
-        W->>R: re-scan, then replay the checked path
+    U->>W: Type a task in plain English
+    Note over W: Capture the scene<br/>(overhead camera, or the phone for the real table)
+    W->>V: Image with numbered object tags + the task
+    V-->>W: Pick tag 2, place beside tag 1, avoid tag 3
+    Note over W: Cross-check the answer<br/>against the task wording
+    W->>P: Pixel keypoints for this capture
+    Note over P: Depth rays to 3D points<br/>IK + collision-free route
+    P->>D: Checked path, run in simulation
+    D-->>U: Picked, carried, placed + result check
+    opt Real robot (optional)
+        P->>D: Same path on the real arm, after a re-scan
     end
 ```
 
