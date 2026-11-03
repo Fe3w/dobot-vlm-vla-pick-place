@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Removes assistant attribution from commit messages, so commits carry only your own name.
+# Enabled with: git config core.hooksPath tools/git-hooks
+f="$1"
+sed -i -E \
+  -e '/^[[:space:]]*co-authored-by:.*(claude|anthropic|noreply@anthropic\.com)/Id' \
+  -e '/generated with \[?claude code/Id' \
+  -e '/^[[:space:]]*claude-session:/Id' \
+  -e '/claude\.ai\/code\/session/Id' "$f"
+# drop trailing blank lines left behind
+sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$f"

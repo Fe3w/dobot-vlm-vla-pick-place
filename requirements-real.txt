@@ -1,0 +1,5 @@
+# Real-robot side (scripts/setup_real.sh installs these into ~/dobot_real/venv)
+pyserial
+numpy
+opencv-python
+pillow

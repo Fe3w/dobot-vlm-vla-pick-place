@@ -1,0 +1,30 @@
+# secrets and local settings
+.env
+.env.*
+!.env.example
+*.key
+*-api-key
+
+# run data (captures, VLM decisions, calibration, logs)
+output/
+*.log
+runs.jsonl
+
+# scene assets are large binaries: keep them out of git (see assets/README.md)
+assets/*
+!assets/README.md
+
+# assistant / editor files
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.claude/
+.cursor/
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

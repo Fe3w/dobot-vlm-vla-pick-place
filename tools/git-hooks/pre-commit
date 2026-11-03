@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Refuses to commit secrets and assistant files: .env (not .env.example), key files, CLAUDE.md, AGENTS.md, .claude/
+bad=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)(\.env(\..*)?|CLAUDE(\.local)?\.md|AGENTS\.md|[^/]*\.key|[^/]*-api-key)$|(^|/)\.claude/' | grep -v '\.env\.example$')
+if [ -n "$bad" ]; then
+  echo "pre-commit: refusing to commit:" >&2
+  echo "$bad" | sed 's/^/  /' >&2
+  echo "unstage them: git restore --staged <file>" >&2
+  exit 1
+fi
