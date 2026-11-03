@@ -37,7 +37,7 @@ is real time. No training data and no hand-taught paths.</em></p>
 ## Architecture
 
 ```mermaid
-%%{init: {"sequence": {"mirrorActors": false, "messageMargin": 40, "noteMargin": 12}}}%%
+%%{init: {"sequence": {"mirrorActors": false, "messageMargin": 40, "noteMargin": 12, "useMaxWidth": false}}}%%
 sequenceDiagram
     autonumber
     actor U as You
@@ -48,13 +48,18 @@ sequenceDiagram
 
     U->>W: Type a task in plain English
     Note over W: Capture the scene<br/>(overhead camera, or the phone for the real table)
+    
     W->>V: Image with numbered object tags + the task
     V-->>W: Pick tag 2, place beside tag 1, avoid tag 3
+    
     Note over W: Cross-check the answer<br/>against the task wording
+    
     W->>P: Pixel keypoints for this capture
     Note over P: Depth rays to 3D points<br/>IK + collision-free route
+    
     P->>D: Checked path, run in simulation
     D-->>U: Picked, carried, placed + result check
+    
     opt Real robot (optional)
         P->>D: Same path on the real arm, after a re-scan
     end
