@@ -13,11 +13,11 @@ and checks the motion, and a Dobot Magician carries it out, first in simulation,
 
 </div>
 
-NEW-LINK
+https://github.com/user-attachments/assets/90788885-9483-4c5e-946d-1967df6facf4
 
-<p align="center"><em>Simulation. Task: "pick up the green cube and place it next to the cylinder".
-The waiting (scene capture, VLM engine, path planning and safety checks) is fast-forwarded; the robot's motion
-is real time. No training data and no hand-taught paths.</em></p>
+<p align="center"><em>Task: "pick up the red cylinder and place it next to the cube". The instruction is typed in the
+Isaac Sim task window, the depth view shows the grasp region, goal region and obstacles, and the arm executes the
+planned collision-free path. Top: overhead simulation camera. Bottom: free viewpoint. Shown at 2.5× speed.</em></p>
 
 ## What it does
 
@@ -37,7 +37,7 @@ is real time. No training data and no hand-taught paths.</em></p>
 ## Architecture
 
 ```mermaid
-%%{init: {"sequence": {"mirrorActors": false, "messageMargin": 40, "noteMargin": 12}}}%%
+%%{init: {"sequence": {"mirrorActors": false, "messageMargin": 40, "noteMargin": 12, "useMaxWidth": false}}}%%
 sequenceDiagram
     autonumber
     actor U as You
@@ -48,19 +48,37 @@ sequenceDiagram
 
     U->>W: Type a task in plain English
     Note over W: Capture the scene<br/>(overhead camera, or the phone for the real table)
+    
     W->>V: Image with numbered object tags + the task
     V-->>W: Pick tag 2, place beside tag 1, avoid tag 3
+    
     Note over W: Cross-check the answer<br/>against the task wording
+    
     W->>P: Pixel keypoints for this capture
     Note over P: Depth rays to 3D points<br/>IK + collision-free route
+    
     P->>D: Checked path, run in simulation
     D-->>U: Picked, carried, placed + result check
+    
     opt Real robot (optional)
         P->>D: Same path on the real arm, after a re-scan
     end
 ```
 
 Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Perception and planning
+
+<p align="center"><img src="docs/images/depth_view.png" width="620" alt="Depth view from the overhead camera with the grasp region, goal region, selected placement and obstacle surface samples labelled"></p>
+
+<p align="center"><em>Depth from the overhead camera. The pixels chosen through the VLM's answer are cast into the
+scene as depth rays: the grasp region on the target, the placement candidates around the reference object (goal
+region), the selected placement, and surface samples on every obstacle.</em></p>
+
+<p align="center"><img src="docs/images/sim_views.jpg" alt="The Dobot carrying the red cylinder along the planned path, seen from the overhead camera and from a free viewpoint"></p>
+
+<p align="center"><em>Transit along the planned path. The held cylinder keeps a clearance margin from the obstacle
+footprints (red outlines); the yellow and magenta lines are the planned path and the measured tip trail.</em></p>
 
 ## Real-world setup
 
@@ -109,8 +127,8 @@ position in robot millimetres (right). This view replaces the depth camera.</em>
 ## Quick start (simulation)
 
 ```bash
-git clone https://github.com/<you>/dobot-vlm-pick-place.git
-cd dobot-vlm-pick-place
+git clone https://github.com/Fe3w/dobot-vlm-vla-pick-place.git
+cd dobot-vlm-vla-pick-place
 cp .env.example .env            # then set VLM_PROVIDER, VLM_API_BASE, VLM_MODEL, VLM_API_KEY
 # put the scene assets in assets/ (see assets/README.md)
 bash scripts/start_dobot.sh --check   # checks files, VLM access, GPU
@@ -211,5 +229,6 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 | Video | What it shows |
 |---|---|
-| [Simulation run](NEW-LINK) | Isaac Sim: typed task → VLM engine → path planning + safety checks → pick, carry, place |
+| [Pick and place, two views](https://github.com/user-attachments/assets/90788885-9483-4c5e-946d-1967df6facf4) | Typed instruction → depth view → execution, overhead camera and free viewpoint (2.5×) |
+| [First simulation run](https://github.com/user-attachments/assets/3d14c2cb-25bf-4d8f-99ec-96a852c00af8) | Isaac Sim: "pick up the green cube and place it next to the cylinder" |
 <!-- | [Real robot](PASTE-LINK) | Phone-camera scan → simulated check → real Dobot replay | -->
