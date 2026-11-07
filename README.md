@@ -2,8 +2,9 @@
 
 # Dobot Magician VLM pick-and-place
 
-**Type a task in plain English. A vision-language model reads it against the camera image, NVIDIA Isaac Sim plans
-and checks the motion, and a Dobot Magician carries it out, first in simulation, then on the real arm.**
+**A robot arm that carries out pick-and-place tasks from plain-English instructions.** A vision-language model
+reads the instruction against the camera image, geometry verifies its answer, and a planner moves a Dobot Magician
+along a collision-free path in NVIDIA Isaac Sim.
 
 ![Isaac Sim](https://img.shields.io/badge/NVIDIA%20Isaac%20Sim-6.0.1-76B900?logo=nvidia&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
@@ -13,28 +14,26 @@ and checks the motion, and a Dobot Magician carries it out, first in simulation,
 
 </div>
 
+<div align="center">
+
 https://github.com/user-attachments/assets/90788885-9483-4c5e-946d-1967df6facf4
 
-<p align="center"><em>Task: "pick up the red cylinder and place it next to the cube". The instruction is typed in the
-Isaac Sim task window, the depth view shows the grasp region, goal region and obstacles, and the arm executes the
-planned collision-free path. Top: overhead simulation camera. Bottom: free viewpoint. Shown at 2.5× speed.</em></p>
+<em>"pick up the red cylinder and place it next to the cube": typed instruction, depth view, then execution.<br>
+Top: overhead simulation camera. Bottom: free viewpoint. 2.5× speed.</em>
 
-## What it does
+</div>
 
-```text
-"pick the red cylinder, place it beside the purple cone and avoid the green sphere"
-```
+## How it works
 
-1. The overhead camera image is captured and every object in it is found.
-2. A **vision-language model** sees the image with a numbered tag on each object. It answers only *which tag to
-   pick, which tag is the reference, which side, and what to avoid*. It never guesses coordinates.
-3. The chosen pixels become real 3D points through **depth rays** into the scene. **Inverse kinematics** and an
-   **obstacle-aware route planner** work out a safe path for the held object.
-4. The simulated Dobot picks, carries, places and returns home. A **result check** confirms the task was done.
-5. **Real robot (optional):** an ordinary **phone camera** finds the real objects. They are mirrored into the
-   simulation and the task is planned and checked there. Only a checked path is replayed on the real Dobot.
-
-## Architecture
+1. **Capture.** The overhead camera image is captured and each object gets a numbered tag.
+2. **Ground the instruction.** A vision-language model reads the instruction against the tagged image and answers
+   which object to pick, where to place it and what to avoid. It is not asked for coordinates.
+3. **Verify with geometry.** The selected pixels are cast into the scene as depth rays to get 3D grasp and
+   placement points, support heights and obstacle footprints.
+4. **Plan.** Inverse kinematics and a polar-grid route planner compute a path that keeps the held object clear of
+   every obstacle.
+5. **Execute and check.** The arm picks, carries and places, and the final position is checked against the
+   instruction.
 
 ```mermaid
 %%{init: {"sequence": {"mirrorActors": false, "messageMargin": 40, "noteMargin": 12, "useMaxWidth": false}}}%%
@@ -65,46 +64,41 @@ sequenceDiagram
     end
 ```
 
-Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Perception and planning
-
-<p align="center"><img src="docs/images/depth_view.png" width="620" alt="Depth view from the overhead camera with the grasp region, goal region, selected placement and obstacle surface samples labelled"></p>
-
-<p align="center"><em>Depth from the overhead camera. The pixels chosen through the VLM's answer are cast into the
-scene as depth rays: the grasp region on the target, the placement candidates around the reference object (goal
-region), the selected placement, and surface samples on every obstacle.</em></p>
-
-<p align="center"><img src="docs/images/sim_views.jpg" alt="The Dobot carrying the red cylinder along the planned path, seen from the overhead camera and from a free viewpoint"></p>
-
-<p align="center"><em>Transit along the planned path. The held cylinder keeps a clearance margin from the obstacle
-footprints (red outlines); the yellow and magenta lines are the planned path and the measured tip trail.</em></p>
-
-## Real-world setup
-
-The real arm uses a phone as its only camera (no depth camera). The phone is calibrated against the arm by touching
-printed ArUco markers, on the table and on top of boxes, with the suction tip. Objects are then found by comparing
-each photo with a photo of the empty table.
+## Results
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/lab_setup.jpg" alt="Dobot Magician with ArUco markers and test objects on the lab table"></td>
-<td width="50%"><img src="docs/images/calibration_markers.jpg" alt="All calibration markers detected and numbered in one phone photo"></td>
+<td width="50%" align="center"><img src="docs/images/depth_view.png" alt="Labelled depth view: goal region, selected placement, grasp region and obstacle samples"></td>
+<td width="50%" align="center"><img src="docs/images/phone_detection.jpg" alt="Phone camera view of the real table: estimated height map and detected objects in robot millimetres"></td>
 </tr>
 <tr>
-<td align="center"><em>Lab setup: Dobot Magician, calibration markers, test objects</em></td>
-<td align="center"><em><code>calibrate-all</code>: every marker found and numbered from one photo</em></td>
+<td align="center"><em><b>Simulation:</b> depth from the overhead camera with the grasp region, goal region,
+selected placement and obstacle samples</em></td>
+<td align="center"><em><b>Real table:</b> the same scene description from a calibrated phone camera, with each object
+located in robot millimetres</em></td>
 </tr>
 <tr>
-<td colspan="2"><img src="docs/images/phone_detection.jpg" alt="Estimated height map and phone photo with detected objects and their robot coordinates"></td>
+<td align="center"><img src="docs/images/sim_views.jpg" alt="The Dobot carrying the red cylinder along the planned path in simulation"></td>
+<td align="center"><img src="docs/images/calibration_markers.jpg" alt="Calibration markers on the real lab table, detected and numbered in one photo"></td>
 </tr>
 <tr>
-<td colspan="2" align="center"><em>Phone camera view: estimated height map (left) and detected objects with their
-position in robot millimetres (right). This view replaces the depth camera.</em></td>
+<td align="center"><em><b>Simulation:</b> transit along the planned path, clear of the obstacle footprints (red)</em></td>
+<td align="center"><em><b>Real table:</b> camera-to-robot calibration with ArUco markers touched by the suction tip</em></td>
 </tr>
 </table>
 
-<!-- Real-robot video: drag the video file into the README editor on GitHub, then put the link it creates on its own line here. -->
+## Design highlights
+
+- **Language in, verified motion out.** The model decides *what* to move; geometry decides *where* and *how*. Its
+  answer is checked against the scene (depth rays, reachability, clearance) before any motion is commanded.
+- **Model-agnostic grounding.** The grounding step works with OpenAI-compatible APIs, the Claude API or a local
+  vision model, and is cross-checked against the wording of the instruction.
+- **Obstacle-aware planning.** A shortest-path search over the arm's reachable workspace keeps the held object's
+  real footprint clear of every obstacle, with damped least-squares inverse kinematics.
+- **Simulation as the safety gate for the real arm.** The real table is mirrored into the simulation from a phone
+  camera; only a path that passes there is sent to the physical Dobot.
 
 ## Status
 
@@ -116,119 +110,24 @@ position in robot millimetres (right). This view replaces the depth camera.</em>
 | Real Dobot driver, bridge, teleop, auto-park | ✅ Teleop and homing tested on the arm |
 | Real-robot replay of a simulated plan | 🧪 In testing |
 
-## Requirements
+## Getting started
 
-- Ubuntu 22.04 or 24.04 with an NVIDIA RTX GPU (8 GB VRAM is enough), NVIDIA Isaac Sim 6.0.x
-- The scene assets (USD stage, URDF, Lula YAML). See [assets/README.md](assets/README.md).
-- A vision-language model: any OpenAI-compatible API with image input, a local model, the Claude API, or a
-  signed-in Claude Code CLI
-- Real robot only: Dobot Magician with suction cup, USB cable, and an Android phone with the IP Webcam app
-
-## Quick start (simulation)
+Requires Ubuntu with an NVIDIA RTX GPU, NVIDIA Isaac Sim 6.0 and a vision-language model (API or local).
 
 ```bash
 git clone https://github.com/Fe3w/dobot-vlm-vla-pick-place.git
 cd dobot-vlm-vla-pick-place
-cp .env.example .env            # then set VLM_PROVIDER, VLM_API_BASE, VLM_MODEL, VLM_API_KEY
-# put the scene assets in assets/ (see assets/README.md)
-bash scripts/start_dobot.sh --check   # checks files, VLM access, GPU
-bash scripts/start_dobot.sh           # opens Isaac Sim with the "Dobot pick-and-place" window
+cp .env.example .env                 # choose the VLM provider
+bash scripts/start_dobot.sh          # opens Isaac Sim with the task window
 ```
 
-Type a task in the window and press **Run task**. Full setup: [docs/SETUP.md](docs/SETUP.md).
-
-## Choosing the VLM
-
-Set `VLM_PROVIDER` in `.env`:
-
-| Provider | Settings | Notes |
-|---|---|---|
-| `openai` | `VLM_API_BASE`, `VLM_MODEL`, `VLM_API_KEY` | OpenAI, OpenRouter, Gemini's OpenAI endpoint, Groq, Ollama, vLLM, LM Studio, local routers |
-| `anthropic` | `ANTHROPIC_API_KEY`, `VLM_MODEL` | Claude API, billed per request |
-| `claude_code` | `VLM_CLAUDE_CODE_MODEL` | Claude Code CLI on a Claude subscription; API keys in the environment are removed for the call |
-| `none` | | No model: unambiguous tasks are decided from their wording |
-
-Several providers at once (`VLM_PROVIDER=openai,claude_code`) are asked in parallel, and their answers must agree.
-Test the connection with `python3 src/dobot_vlm_keypoints.py --check`. Details: [docs/VLM.md](docs/VLM.md).
-
-### Running with a local model (no API key, no internet)
-
-The model only has to say which numbered tag is which. It never estimates coordinates, so a small local vision
-model on the same laptop is enough. With [Ollama](https://ollama.com):
-
-```bash
-ollama pull qwen2.5vl:7b          # any vision model; smaller ones answer faster
-```
-
-```ini
-# .env
-VLM_PROVIDER=openai
-VLM_API_BASE=http://127.0.0.1:11434/v1
-VLM_MODEL=qwen2.5vl:7b
-VLM_API_KEY=
-```
-
-Then run `python3 src/dobot_vlm_keypoints.py --check`. It should print `route openai up ok (model offered)`.
-
-- A 7B vision model in 4-bit needs about 6 GB of GPU memory. Isaac Sim needs most of an 8 GB card, so on a laptop
-  you may have to run the model on the CPU (slower), or use a smaller model.
-- Raise `VLM_DEADLINE_S` (default 40 s) if the first answer is slow while the model loads.
-- The answer is still cross-checked against the task wording, and every pixel is verified with depth rays before
-  the arm moves. With a weaker model, name objects clearly in the task ("the red cylinder"): the wording check
-  can then catch a wrong answer.
-
-## Real robot
-
-```bash
-bash scripts/setup_real.sh      # once: Python environment, serial access, phone camera, Dobot check
-# once: calibrate the phone camera against the arm (docs/REAL_ROBOT.md)
-bash scripts/start_real.sh      # every session: phone link, Dobot bridge, Isaac Sim
-```
-
-Tick **Use real scene**, press **Run task**, check the plan in the Phone camera window, then click
-**Send to real Dobot** twice. Step-by-step guide: [docs/REAL_ROBOT.md](docs/REAL_ROBOT.md).
-
-## Repository layout
-
-```text
-src/            runtime scripts (Isaac Sim side and real-robot side), all in one folder because they load each other
-scripts/        start_dobot.sh, start_real.sh, setup_real.sh (+ _env.sh, shared settings loader)
-diagnostics/    read-only Isaac Sim scene and gripper audits
-tools/          git hooks, Windows replay of a plan
-docs/           setup, VLM, real robot, architecture, troubleshooting
-assets/         scene assets (not in git)
-output/         run data: captures, VLM decisions, calibration, run log (created at run time, not in git)
-```
-
-| File | Role |
-|---|---|
-| `src/dobot_run_task.py` | Task window in Isaac Sim: Run task, Reset scene, Stop, test lists, real-robot controls |
-| `src/dobot_capture_overhead.py` | Renders the overhead camera, checks the camera model, writes `capture.json` |
-| `src/dobot_vlm_keypoints.py` | VLM engine: tagged image → target / reference / relation → `keypoints_2d_vlm.json` |
-| `src/dobot_pnp_run_simulation_v3.py` | Checks the keypoints against the capture, then runs the controller |
-| `src/dobot_pnp_run_simulation_isaacsim6_v2.py` | Controller: depth rays, IK, route planning, kinematic suction latch |
-| `src/dobot_real.py` | Real side: phone camera, calibration, scan, plan, execute |
-| `src/dobot_link.py` | Dobot serial driver and localhost bridge (`serve`) |
-| `src/dobot_teleop.py` | Keyboard teleop of the real arm and suction (standalone) |
-| `src/dobot_run_report.py` | Terminal summary of recorded runs |
-
-## Safety
-
-- Every plan runs in simulation first. The real arm only replays a path that passed the result check, after a
-  re-scan shows nothing moved.
-- Moves are limited to a reach ring (135–315 mm from the base), never below the table, at reduced speed.
-- The Dobot Magician has no emergency stop. Keep a hand near the power switch, and use **Stop** in the task
-  window or Ctrl+C in a terminal.
-- The robot bridge only listens on `127.0.0.1`.
-
-## Troubleshooting
-
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+Full instructions (requirements, model setup including local models, real robot, repository layout, safety):
+**[docs/GUIDE.md](docs/GUIDE.md)**. Also: [setup](docs/SETUP.md) · [VLM providers](docs/VLM.md) ·
+[real robot](docs/REAL_ROBOT.md) · [troubleshooting](docs/TROUBLESHOOTING.md).
 
 ## Videos
 
 | Video | What it shows |
 |---|---|
 | [Pick and place, two views](https://github.com/user-attachments/assets/90788885-9483-4c5e-946d-1967df6facf4) | Typed instruction → depth view → execution, overhead camera and free viewpoint (2.5×) |
-| [First simulation run](https://github.com/user-attachments/assets/3d14c2cb-25bf-4d8f-99ec-96a852c00af8) | Isaac Sim: "pick up the green cube and place it next to the cylinder" |
-<!-- | [Real robot](PASTE-LINK) | Phone-camera scan → simulated check → real Dobot replay | -->
+| [First simulation run](https://github.com/user-attachments/assets/3d14c2cb-25bf-4d8f-99ec-96a852c00af8) | "pick up the green cube and place it next to the cylinder" |
